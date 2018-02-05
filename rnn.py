@@ -5,6 +5,8 @@
 
 import numpy as np
 
+from typing import Sequence
+
 from activations import sigmoid
 
 
@@ -41,7 +43,7 @@ class ElmanScalarRNN(RNN):
     [-0.00388719]
     """
 
-    def __init__(self, hidden_size):
+    def __init__(self, hidden_size: int) -> None:
         super().__init__()
 
         # in this scalar input version, the weight matrices are
@@ -55,11 +57,11 @@ class ElmanScalarRNN(RNN):
 
         self.reset_state()
 
-    def reset_state(self):
+    def reset_state(self) -> None:
 
         self.hidden_state = 0.0
 
-    def step(self, input_):
+    def step(self, input_) -> np.ndarray:
 
         input_linear = np.dot(self.params["Wh"], input_)
         hidden_linear = np.dot(self.params["Uh"], self.hidden_state) + self.params["bh"]
@@ -69,7 +71,7 @@ class ElmanScalarRNN(RNN):
 
         return self.hidden_state
 
-    def forward_sequence(self, sequence):
+    def forward_sequence(self, sequence: Sequence[np.ndarray]) -> Sequence[np.ndarray]:
 
         self.reset_state()
 
@@ -80,7 +82,7 @@ class ElmanScalarRNN(RNN):
 
         return hidden_states
 
-    def output(self):
+    def output(self) -> np.ndarray:
         return np.dot(self.params["Wy"], self.hidden_state) + self.params["by"]
 
 
@@ -97,7 +99,10 @@ class ElmanRNN(RNN):
     [ 0.00053832  0.00782895 -0.01356998  0.01432975 -0.03725151]
     """
 
-    def __init__(self, input_size, hidden_size, output_size):
+    def __init__(self,
+                 input_size: int,
+                 hidden_size: int,
+                 output_size: int) -> None:
         super().__init__()
 
         self.hidden_size = hidden_size
@@ -113,11 +118,11 @@ class ElmanRNN(RNN):
 
         self.reset_state()
 
-    def reset_state(self):
+    def reset_state(self) -> None:
 
         self.hidden_state = np.zeros(self.hidden_size,)
 
-    def step(self, input_):
+    def step(self, input_: np.ndarray) -> np.ndarray:
 
         input_linear = np.dot(input_, self.params["Wh"])
         hidden_linear = np.dot(self.params["Uh"], self.hidden_state) + self.params["bh"]
@@ -127,7 +132,7 @@ class ElmanRNN(RNN):
 
         return self.hidden_state
 
-    def forward_sequence(self, sequence):
+    def forward_sequence(self, sequence: Sequence[np.ndarray]) -> Sequence[np.ndarray]:
 
         self.reset_state()
 
@@ -138,5 +143,5 @@ class ElmanRNN(RNN):
 
         return hidden_states
 
-    def output(self):
+    def output(self) -> None:
         return np.dot(self.hidden_state, self.params["Wy"]) + self.params["by"]
