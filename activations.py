@@ -12,6 +12,12 @@ def sigmoid(inputs: np.ndarray) -> np.ndarray:
     """
     return 1 / (1 + np.exp(- inputs))
 
+def tanh(inputs: np.ndarray) -> np.ndarray:
+  """
+  Hyperbolic tangent non-linearity.
+  """
+  return np.tanh(inputs)
+
 def linear(inputs):
 
     return inputs

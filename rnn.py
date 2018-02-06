@@ -7,7 +7,7 @@ import numpy as np
 
 from typing import Sequence
 
-from activations import sigmoid
+from activations import sigmoid, tanh
 
 
 class RNN:
@@ -145,3 +145,89 @@ class ElmanRNN(RNN):
 
     def output(self) -> None:
         return np.dot(self.hidden_state, self.params["Wy"]) + self.params["by"]
+
+
+class LSTM(RNN):
+
+    def __init__(self,
+                 input_size: int,
+                 hidden_size: int,
+                 output_size: int) -> None:
+        super().__init__()
+
+        self.hidden_size = hidden_size
+
+        # forget gate parameters
+        self.params["Wf"] = np.random.randn(hidden_size, input_size) * 0.01
+        self.params["Uf"] = np.random.randn(hidden_size, hidden_size) * 0.01
+        self.params["bf"] = np.zeros(hidden_size,)
+
+        # input gate parameters
+        self.params["Wi"] = np.random.randn(hidden_size, input_size) * 0.01
+        self.params["Ui"] = np.random.randn(hidden_size, hidden_size) * 0.01
+        self.params["bi"] = np.zeros(hidden_size,)
+
+        # output gate parameters
+        self.params["Wo"] = np.random.randn(hidden_size, input_size) * 0.01
+        self.params["Uo"] = np.random.randn(hidden_size, hidden_size) * 0.01
+        self.params["bo"] = np.zeros(hidden_size,)
+
+        # cell state parameters
+        self.params["Wc"] = np.random.randn(hidden_size, input_size) * 0.01
+        self.params["Uc"] = np.random.randn(hidden_size, hidden_size) * 0.01
+        self.params["bc"] = np.zeros(hidden_size,)
+
+        # output vector parameters
+        self.params["Wy"] = np.random.randn(hidden_size, output_size) * 0.01
+        self.params["by"] = np.zeros(output_size,)
+
+        self.reset_state()
+
+    def reset_state(self) -> None:
+
+        self.hidden_state = np.zeros(self.hidden_size,)
+        self.cell_state = np.zeros(self.hidden_size,)
+
+    def step(self, input_: np.ndarray) -> np.ndarray:
+
+        # forget gate
+        forget_gate_input = np.dot(self.params["Wf"], input_)
+        forget_gate_hidden = np.dot(self.params["Uf"], self.hidden_state)
+        forget_gate = sigmoid(forget_gate_input + forget_gate_hidden + self.params["bf"])
+
+        # input gate
+        input_gate_input = np.dot(self.params["Wi"], input_)
+        input_gate_hidden = np.dot(self.params["Ui"], self.hidden_state)
+        input_gate = sigmoid(input_gate_input + input_gate_hidden + self.params["bi"])
+
+        # output gate
+        output_gate_input = np.dot(self.params["Wo"], input_)
+        output_gate_hidden = np.dot(self.params["Uo"], self.hidden_state)
+        output_gate = sigmoid(output_gate_input + output_gate_hidden + self.params["bo"])
+
+        # cell state
+        cell_state_input = np.dot(self.params["Wc"], input_)
+        cell_state_hidden = np.dot(self.params["Uc"], self.hidden_state)
+        cell_state = tanh(cell_state_input + cell_state_hidden + self.params["bc"])
+
+        self.cell_state = (forget_gate * self.cell_state) + (input_gate * cell_state)
+
+        self.hidden_state = output_gate * tanh(self.cell_state)
+
+        return self.hidden_state
+
+    def forward_sequence(self, sequence: Sequence[np.ndarray]) -> Sequence[np.ndarray]:
+
+        self.reset_state()
+
+        hidden_states = []
+
+        for item in sequence:
+            hidden_states.append(self.step(item))
+
+        return hidden_states
+
+    def output(self) -> None:
+        return np.dot(self.hidden_state, self.params["Wy"]) + self.params["by"]
+
+
