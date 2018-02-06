@@ -148,7 +148,16 @@ class ElmanRNN(RNN):
 
 
 class LSTM(RNN):
+    """
+    Long-short term memory RNN, vanilla without peephole
+    connections.
 
+    >>> e = LSTM(5, 10, 5)
+    >>> print(e.step(np.array([1, 2, 3, 4, 5])))
+    [ 9.81669866e-05  3.49891068e-03  2.03026849e-02  3.67467230e-03
+    -5.13049272e-03 -4.68873686e-03  8.13246236e-03  5.22321287e-03
+    2.76350076e-03 -4.19133057e-03]
+    """
     def __init__(self,
                  input_size: int,
                  hidden_size: int,
@@ -229,5 +238,3 @@ class LSTM(RNN):
 
     def output(self) -> None:
         return np.dot(self.hidden_state, self.params["Wy"]) + self.params["by"]
-
-
