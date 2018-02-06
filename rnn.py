@@ -6,6 +6,7 @@
 import numpy as np
 
 from typing import Sequence
+from collections import namedtuple
 
 from activations import sigmoid, tanh
 
@@ -17,12 +18,6 @@ class RNN:
         self.params = {}
 
     def step(self, input_):
-        raise NotImplementedError
-
-    def output(self):
-        """
-        At a certain point in time, compute an output.
-        """
         raise NotImplementedError
 
     def forward_sequence(self, sequence):
@@ -39,8 +34,6 @@ class ElmanScalarRNN(RNN):
     >>> print(e.step(5))
     [0.48501544 0.49107564 0.504578   0.50550117 0.51805654 0.48205011
      0.51270459 0.47850066 0.49718829 0.50798906]
-    >>> print(e.output())
-    [-0.00388719]
     """
 
     def __init__(self, hidden_size: int) -> None:
@@ -51,9 +44,6 @@ class ElmanScalarRNN(RNN):
         self.params["Wh"] = np.random.randn(hidden_size,) * 0.01
         self.params["Uh"] = np.random.randn(hidden_size,) * 0.01
         self.params["bh"] = np.zeros(1,)
-
-        self.params["Wy"] = np.random.randn(hidden_size,) * 0.01
-        self.params["by"] = np.zeros(1,)
 
         self.reset_state()
 
@@ -81,9 +71,6 @@ class ElmanScalarRNN(RNN):
             hidden_states.append(self.step(item))
 
         return hidden_states
-
-    def output(self) -> np.ndarray:
-        return np.dot(self.params["Wy"], self.hidden_state) + self.params["by"]
 
 
 class ElmanRNN(RNN):
@@ -113,9 +100,6 @@ class ElmanRNN(RNN):
         self.params["Uh"] = np.random.randn(hidden_size, hidden_size) * 0.01
         self.params["bh"] = np.zeros(hidden_size,)
 
-        self.params["Wy"] = np.random.randn(hidden_size, output_size) * 0.01
-        self.params["by"] = np.zeros(output_size,)
-
         self.reset_state()
 
     def reset_state(self) -> None:
@@ -143,9 +127,7 @@ class ElmanRNN(RNN):
 
         return hidden_states
 
-    def output(self) -> None:
-        return np.dot(self.hidden_state, self.params["Wy"]) + self.params["by"]
-
+LSTMState = namedtuple("LSTMState", ["cell_states", "hidden_states"])
 
 class LSTM(RNN):
     """
@@ -186,10 +168,6 @@ class LSTM(RNN):
         self.params["Uc"] = np.random.randn(hidden_size, hidden_size) * 0.01
         self.params["bc"] = np.zeros(hidden_size,)
 
-        # output vector parameters
-        self.params["Wy"] = np.random.randn(hidden_size, output_size) * 0.01
-        self.params["by"] = np.zeros(output_size,)
-
         self.reset_state()
 
     def reset_state(self) -> None:
@@ -225,16 +203,16 @@ class LSTM(RNN):
 
         return self.hidden_state
 
-    def forward_sequence(self, sequence: Sequence[np.ndarray]) -> Sequence[np.ndarray]:
+    def forward_sequence(self, sequence: Sequence[np.ndarray]) -> LSTMState:
 
         self.reset_state()
 
         hidden_states = []
+        cell_states = []
 
         for item in sequence:
-            hidden_states.append(self.step(item))
+            hidden_state, cell_state = self.step(item)
+            hidden_states.append(hidden_state)
+            cell_states.append(cell_state)
 
-        return hidden_states
-
-    def output(self) -> None:
-        return np.dot(self.hidden_state, self.params["Wy"]) + self.params["by"]
+        return LSTMState(hidden_states, cell_states)
