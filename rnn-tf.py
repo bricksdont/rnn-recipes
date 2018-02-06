@@ -47,6 +47,50 @@ def static_rnn():
         print("outputs: ", outputs)
         print("states: ", states)
 
-static_rnn()
 
 
+def dynamic_rnn():
+    """
+    A dynamic RNN that can take batches of varying size,
+    i.e. what varies is the sequence length (= timesteps).
+    """
+    num_input = 5
+    num_hidden = 10
+    batch_size = 2
+    timesteps = 10
+
+    # https://www.tensorflow.org/api_docs/python/tf/contrib/rnn/LSTMCell
+    lstm = rnn.LSTMCell(num_units=num_hidden)
+
+    lstm_inputs = tf.placeholder("float", [None, None, num_input])
+
+    # optional parameter, if supplied, states are zeroed out correctly
+    sequence_lengths = tf.placeholder(tf.int32, [None])
+
+    # https://www.tensorflow.org/api_docs/python/tf/nn/dynamic_rnn
+    lstm_output = tf.nn.dynamic_rnn(cell=lstm,
+                                  inputs=lstm_inputs,
+                                  dtype=tf.float32,
+                                  sequence_length=sequence_lengths)
+
+    # Initialize the variables (i.e. assign their default value)
+    init = tf.global_variables_initializer()
+
+    with tf.Session() as sess:
+
+        sess.run(init)
+
+        # prepare actual input data (batch_size, time_steps, num_input)
+        actual_input = np.random.randn(batch_size, timesteps, num_input)
+
+        # pad the second example in the batch so that it has length 5
+        actual_input[1, 5:] = 0
+        lengths = [10, 5]
+
+        outputs, states = sess.run(lstm_output, feed_dict={lstm_inputs: actual_input,
+                                                           sequence_lengths: lengths})
+
+        print("outputs: ", outputs)
+        print("states: ", states)
+
+dynamic_rnn()
