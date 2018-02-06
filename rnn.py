@@ -78,18 +78,15 @@ class ElmanRNN(RNN):
     An Elman RNN that, at each time step,
     takes vector input.
 
-    >>> e = ElmanRNN(5, 10, 5)
+    >>> e = ElmanRNN(5, 10)
     >>> print(e.step(np.array([1, 2, 3, 4, 5])))
     [0.53239282 0.50239672 0.50754092 0.49467159 0.47343499 0.48537873
      0.48764785 0.50135803 0.51225634 0.49526006]
-    >>> print(e.output())
-    [ 0.00053832  0.00782895 -0.01356998  0.01432975 -0.03725151]
     """
 
     def __init__(self,
                  input_size: int,
-                 hidden_size: int,
-                 output_size: int) -> None:
+                 hidden_size: int) -> None:
         super().__init__()
 
         self.hidden_size = hidden_size
@@ -134,7 +131,7 @@ class LSTM(RNN):
     Long-short term memory RNN, vanilla without peephole
     connections.
 
-    >>> e = LSTM(5, 10, 5)
+    >>> e = LSTM(5, 10)
     >>> print(e.step(np.array([1, 2, 3, 4, 5])))
     [ 9.81669866e-05  3.49891068e-03  2.03026849e-02  3.67467230e-03
     -5.13049272e-03 -4.68873686e-03  8.13246236e-03  5.22321287e-03
@@ -142,8 +139,7 @@ class LSTM(RNN):
     """
     def __init__(self,
                  input_size: int,
-                 hidden_size: int,
-                 output_size: int) -> None:
+                 hidden_size: int) -> None:
         super().__init__()
 
         self.hidden_size = hidden_size
@@ -216,3 +212,74 @@ class LSTM(RNN):
             cell_states.append(cell_state)
 
         return LSTMState(hidden_states, cell_states)
+
+class GRU(RNN):
+    """
+    Gated recurrent unit RNN.
+
+    >>> g = GRU(5, 10)
+    >>> print(g.step(np.array([1, 2, 3, 4, 5])))
+
+    [-0.02601452 -0.00179476 -0.01031278 -0.02597636 -0.02946662  0.02102406
+     -0.04205244 -0.03658039  0.00968579  0.02418459]
+    """
+    def __init__(self,
+                 input_size: int,
+                 hidden_size: int) -> None:
+        super().__init__()
+
+        self.hidden_size = hidden_size
+
+        # update gate parameters
+        self.params["Wz"] = np.random.randn(hidden_size, input_size) * 0.01
+        self.params["Uz"] = np.random.randn(hidden_size, hidden_size) * 0.01
+        self.params["bz"] = np.zeros(hidden_size,)
+
+        # reset gate parameters
+        self.params["Wr"] = np.random.randn(hidden_size, input_size) * 0.01
+        self.params["Ur"] = np.random.randn(hidden_size, hidden_size) * 0.01
+        self.params["br"] = np.zeros(hidden_size,)
+
+        # hidden proposal parameters
+        self.params["Wh"] = np.random.randn(hidden_size, input_size) * 0.01
+        self.params["Uh"] = np.random.randn(hidden_size, hidden_size) * 0.01
+        self.params["bh"] = np.zeros(hidden_size,)
+
+        self.reset_state()
+
+    def reset_state(self) -> None:
+
+        self.hidden_state = np.zeros(self.hidden_size,)
+
+    def step(self, input_: np.ndarray) -> np.ndarray:
+
+        # update gate
+        update_gate_input = np.dot(self.params["Wz"], input_)
+        update_gate_hidden = np.dot(self.params["Uz"], self.hidden_state)
+        update_gate = sigmoid(update_gate_input + update_gate_hidden + self.params["bz"])
+
+        # reset gate
+        reset_gate_input = np.dot(self.params["Wr"], input_)
+        reset_gate_hidden = np.dot(self.params["Ur"], self.hidden_state)
+        reset_gate = sigmoid(reset_gate_input + reset_gate_hidden + self.params["br"])
+
+        # hidden state proposal
+        proposal_input = np.dot(self.params["Wh"], input_)
+        proposal_hidden = np.dot(self.params["Uh"], (self.hidden_state * reset_gate))
+        proposal = tanh(proposal_input + proposal_hidden + self.params["bh"])
+
+        # new hidden state
+        self.hidden_state = ((1 - update_gate) * proposal) + (update_gate * self.hidden_state)
+
+        return self.hidden_state
+
+    def forward_sequence(self, sequence: Sequence[np.ndarray]) -> Sequence[np.ndarray]:
+
+        self.reset_state()
+
+        hidden_states = []
+
+        for item in sequence:
+            hidden_states.append(self.step(item))
+
+        return hidden_states
