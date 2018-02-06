@@ -197,7 +197,7 @@ class LSTM(RNN):
 
         self.hidden_state = output_gate * tanh(self.cell_state)
 
-        return self.hidden_state
+        return self.hidden_state, self.cell_state
 
     def forward_sequence(self, sequence: Sequence[np.ndarray]) -> LSTMState:
 
